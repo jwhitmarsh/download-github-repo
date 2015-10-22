@@ -16,10 +16,8 @@ module.exports = download;
  * @param {Function} fn
  */
 
-function download(options, fn) {
+function download(options, cb) {
   var url = github(normalize(options.repo));
-  console.log(url);
-
   var req = request.get(url, {
     encoding: null,
     auth: {
@@ -35,16 +33,12 @@ function download(options, fn) {
 
   req.pipe(file);
 
-  req.on('data', function(data) {
-    console.log(data);
-  });
-
   req.on('error', function(error) {
-    console.log(error);
+    console.error(error);
   });
 
   req.on('end', function() {
-    console.log('done');
+    cb(0);
   });
 }
 
