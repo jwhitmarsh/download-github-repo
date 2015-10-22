@@ -1,4 +1,3 @@
-var wget = require('download');
 var request = require('request');
 var fs = require('fs');
 

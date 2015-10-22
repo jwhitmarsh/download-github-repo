@@ -15,7 +15,8 @@
     "tarball"
   ],
   "dependencies": {
-    "download": "^0.1.11"
+    "request": "^2.65.0",
+    "stdio": "^0.2.7"
   },
   "devDependencies": {
     "mocha": "~1.17.1",
