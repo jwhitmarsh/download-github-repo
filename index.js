@@ -1,4 +1,6 @@
 var wget = require('download');
+var request = require('request');
+var fs = require('fs');
 
 /**
  * Expose `download`.
@@ -14,16 +16,35 @@ module.exports = download;
  * @param {Function} fn
  */
 
-function download(repo, dest, fn){
-  var url = github(normalize(repo));
-  var dl = wget(url, dest, { extract: true, strip: 1 });
+function download(options, fn) {
+  var url = github(normalize(options.repo));
+  console.log(url);
 
-  dl.on('error', function(err){
-    fn(err);
+  var req = request.get(url, {
+    encoding: null,
+    auth: {
+      user: options.user,
+      pass: options.password
+    },
+    headers: {
+      'User-Agenct': 'request'
+    }
+  });
+  var file = fs.createWriteStream('lamp-backend-master.zip');
+  var data = [];
+
+  req.pipe(file);
+
+  req.on('data', function(data) {
+    console.log(data);
   });
 
-  dl.on('close', function(){
-    fn();
+  req.on('error', function(error) {
+    console.log(error);
+  });
+
+  req.on('end', function() {
+    console.log('done');
   });
 }
 
@@ -34,14 +55,8 @@ function download(repo, dest, fn){
  * @return {String}
  */
 
-function github(repo){
-  return 'https://github.com/'
-    + repo.owner
-    + '/'
-    + repo.name
-    + '/archive/'
-    + repo.branch
-    + '.zip';
+function github(repo) {
+  return 'https://github.com/' + repo.owner + '/' + repo.name + '/archive/' + repo.branch + '.zip';
 }
 
 /**
@@ -51,7 +66,7 @@ function github(repo){
  * @return {Object}
  */
 
-function normalize(string){
+function normalize(string) {
   var owner = string.split('/')[0];
   var name = string.split('/')[1];
   var branch = 'master';
