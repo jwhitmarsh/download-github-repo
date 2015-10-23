@@ -15,12 +15,14 @@
     "tarball"
   ],
   "dependencies": {
+    "fs-extra": "^0.24.0",
     "git-config": "0.0.7",
     "inquirer": "^0.11.0",
     "prompt": "^0.2.14",
     "q": "^1.4.1",
     "request": "^2.65.0",
-    "stdio": "^0.2.7"
+    "stdio": "^0.2.7",
+    "unzip": "^0.1.11"
   },
   "devDependencies": {
     "mocha": "~1.17.1",

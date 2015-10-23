@@ -4,6 +4,7 @@ var Download = require('../index');
 var prompt = require('prompt');
 var inquirer = require('inquirer');
 var gitConf = require('git-config');
+var path = require('path');
 var d;
 
 function _gotTags(tags) {
@@ -26,11 +27,22 @@ function _gotTags(tags) {
 
 function _download(url) {
   d.download(url, function() {
-    console.log('downloaded!');
+    console.log('\nDone!');
   });
 }
 
 function _start(config) {
+  d = new Download(config);
+  var normalizedRepo = d.normalize(config.repo);
+
+  if (normalizedRepo.definedBranch) {
+    return _download(d.github(normalizedRepo));
+  }
+
+  d.tags(normalizedRepo).then(_gotTags);
+}
+
+function _startWithPrompt(config) {
   prompt.start();
 
   var schema = [{
@@ -57,14 +69,7 @@ function _start(config) {
       return console.error(err);
     }
 
-    d = new Download(result);
-    var normalizedRepo = d.normalize(result.repo);
-
-    if (normalizedRepo.definedBranch) {
-      return _download(d.github(normalizedRepo));
-    }
-
-    d.tags(normalizedRepo).then(_gotTags);
+    _start(result);
   });
 }
 
@@ -72,5 +77,11 @@ gitConf(function(err, config) {
   if (err) {
     return console.error(err);
   }
-  _start(config);
+
+  try {
+    config = require(path.join(process.cwd(), 'dgr-config.json'));
+    return _start(config);
+  } catch (e) {
+    _startWithPrompt(config);
+  }
 });

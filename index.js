@@ -1,6 +1,7 @@
 var request = require('request');
-var fs = require('fs');
+var fs = require('fs-extra');
 var Q = require('q');
+var unzip = require('unzip');
 
 module.exports = function(options) {
   var requestOptions = {
@@ -23,7 +24,9 @@ module.exports = function(options) {
    */
   function download(url, cb) {
     var req = request.get(url, requestOptions);
-    var file = fs.createWriteStream(options.normalizedRepo.name + '.zip');
+    var zipname = options.normalizedRepo.name + '.zip';
+    var file = fs.createWriteStream(zipname);
+    var extractFile = options.normalizedRepo.name + '-' + url.split('/').pop();
 
     req.pipe(file);
 
@@ -32,7 +35,21 @@ module.exports = function(options) {
     });
 
     req.on('end', function() {
-      cb(0);
+      fs.createReadStream(zipname)
+        .pipe(unzip.Parse())
+        .on('entry', function(entry) {
+          var fileName = entry.path;
+          var type = entry.type; // 'Directory' or 'File'
+          var zipParent = fileName.substr(0, fileName.indexOf('/'));
+          fileName = fileName.replace(zipParent, extractFile);
+
+          if (type === 'Directory') {
+            fs.ensureDirSync('./' + fileName);
+          } else {
+            entry.pipe(fs.createWriteStream('./' + fileName));
+          }
+        })
+        .on('close', cb);
     });
   }
 
@@ -43,7 +60,7 @@ module.exports = function(options) {
    * @return {String}
    */
   function github(repo) {
-    return 'https://github.com/' + repo.owner + '/' + repo.name + '/archive/' + repo.branch + '.zip';
+    return 'https://github.com/' + repo.owner + '/' + repo.name + '/zipball/' + repo.branch;
   }
 
   /**
