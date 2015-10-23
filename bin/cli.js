@@ -3,9 +3,8 @@
 var Download = require('../index');
 var prompt = require('prompt');
 var inquirer = require('inquirer');
+var gitConf = require('git-config');
 var d;
-
-prompt.start();
 
 function _gotTags(tags) {
   var tagOptions = tags.map(function(tag) {
@@ -21,25 +20,57 @@ function _gotTags(tags) {
     message: "Pick a tag to download",
     choices: tagOptions
   }], function(answers) {
-    d.download(answers.tag, function() {
-      console.log('downloaded!');
-    });
+    _download(answers.tag);
   });
 }
 
-prompt.get(['repo' /* ,'user', 'password' */ ], function(err, result) {
+function _download(url) {
+  d.download(url, function() {
+    console.log('downloaded!');
+  });
+}
+
+function _start(config) {
+  prompt.start();
+
+  var schema = [{
+    name: 'repo',
+    description: 'Github repo to download',
+    type: 'string',
+    required: true
+  }, {
+    name: 'user',
+    description: 'Github user',
+    type: 'string',
+    required: true,
+    default: config.user.email
+  }, {
+    name: 'password',
+    description: 'Github password',
+    type: 'string',
+    required: true,
+    hidden: true
+  }];
+
+  prompt.get(schema, function(err, result) {
+    if (err) {
+      return console.error(err);
+    }
+
+    d = new Download(result);
+    var normalizedRepo = d.normalize(result.repo);
+
+    if (normalizedRepo.definedBranch) {
+      return _download(d.github(normalizedRepo));
+    }
+
+    d.tags(normalizedRepo).then(_gotTags);
+  });
+}
+
+gitConf(function(err, config) {
   if (err) {
     return console.error(err);
   }
-
-  if (!result.user) {
-    result.repo = 'dresources/lamp-backend';
-    result.user = 'jwhitmarsh';
-    result.password = 'W3lc0me!23456';
-  }
-
-  d = new Download(result);
-  var normalizedRepo = d.normalize(result.repo);
-
-  //d.tags(normalizedRepo).then(_gotTags);
+  _start(config);
 });

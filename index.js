@@ -56,8 +56,10 @@ module.exports = function(options) {
     var owner = string.split('/')[0];
     var name = string.split('/')[1];
     var branch = 'master';
+    var definedBranch = ~name.indexOf('#')
 
-    if (~name.indexOf('#')) {
+    // ~ bitwise truthy because indexOf() returns a negative int (-1) if not found
+    if (definedBranch) {
       branch = name.split('#')[1];
       name = name.split('#')[0];
     }
@@ -65,13 +67,15 @@ module.exports = function(options) {
     options.normalizedRepo = {
       owner: owner,
       name: name,
-      branch: branch
+      branch: branch,
+      definedBranch: definedBranch
     };
 
     return {
       owner: owner,
       name: name,
-      branch: branch
+      branch: branch,
+      definedBranch: definedBranch
     };
   };
 
@@ -108,7 +112,8 @@ module.exports = function(options) {
     tags: tags,
     branches: branches,
     normalize: normalize,
-    download: download
+    download: download,
+    github: github
   };
 
 };
