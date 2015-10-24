@@ -1,11 +1,20 @@
 #!/usr/bin/env node
 
 var Download = require('../index');
+var l = require('../util/log');
 var prompt = require('prompt');
 var inquirer = require('inquirer');
 var gitConf = require('git-config');
 var path = require('path');
+var fs = require('fs-extra');
+var _ = require('lodash');
 var d;
+
+function _download(url) {
+  d.download(url, function() {
+    l.info('done!');
+  });
+}
 
 function _gotTags(tags) {
   var tagOptions = tags.map(function(tag) {
@@ -25,21 +34,14 @@ function _gotTags(tags) {
   });
 }
 
-function _download(url) {
-  d.download(url, function() {
-    console.log('\nDone!');
-  });
-}
-
 function _start(config) {
   d = new Download(config);
-  var normalizedRepo = d.normalize(config.repo);
 
-  if (normalizedRepo.definedBranch) {
-    return _download(d.github(normalizedRepo));
+  if (config.definedBranch) {
+    return _download();
   }
 
-  d.tags(normalizedRepo).then(_gotTags);
+  d.tags().then(_gotTags);
 }
 
 function _startWithPrompt(config) {
@@ -73,15 +75,26 @@ function _startWithPrompt(config) {
   });
 }
 
-gitConf(function(err, config) {
-  if (err) {
-    return console.error(err);
-  }
+function main() {
+  gitConf(function(err, gitConfig) {
+    if (err) {
+      return l.error(err);
+    }
 
-  try {
-    config = require(path.join(process.cwd(), 'dgr-config.json'));
-    return _start(config);
-  } catch (e) {
-    _startWithPrompt(config);
-  }
-});
+    var options = {
+      user: gitConfig.user
+    };
+
+    var configFilePath = path.join(process.cwd(), 'dgr-config.json');
+    if (fs.existsSync(configFilePath)) {
+      l.info('loading config file', configFilePath);
+
+      _.assign(options, require(configFilePath));
+      return _start(options);
+    }
+
+    _startWithPrompt(options);
+  });
+}
+
+main();

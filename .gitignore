@@ -2,3 +2,5 @@ node_modules
 test/tmp
 *.zip
 dgr-config.json
+*.log
+lamp*
