@@ -1,0 +1,6 @@
+{
+  "js":{
+    "preserve_new_lines": true,
+    "max_preserve_newlines": 2
+  }
+}

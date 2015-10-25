@@ -6,8 +6,16 @@ var log = require('./util/log');
 var _ = require('lodash');
 var RequestError = require('./util/request-error');
 var ProgressBar = require('progress');
+var noop = require('node-noop').noop;
 
 module.exports = function(options) {
+
+  if (!options) {
+    throw new Error('Options object required');
+  }
+  if (!options.repo || !options.repo.length || options.repo.indexOf('/') < 0) {
+    throw new Error('Invalid Repo');
+  }
 
   /**
    * Default request options
@@ -73,7 +81,7 @@ module.exports = function(options) {
    * @return {String}
    */
   function _setBranchUrl() {
-    options.url = 'https://github.com/' + options.owner + '/' + options.name + '/zipball/' + options.branch;
+    options.url = 'https://api.github.com/repos/' + options.owner + '/' + options.name + '/zipball/' + options.branch;
   }
 
   /**
@@ -89,32 +97,38 @@ module.exports = function(options) {
     var file = fs.createWriteStream(zipname);
 
     log.info('donloading...', options.url);
+    try {
+      request.get(options.url, requestOptions)
+        .on('error', function(error) {
+          return cb(new RequestError(error));
+        })
+        .on('response', function(res) {
+          if (res.statusCode !== 200) {
+            fs.unlink(zipname);
+            return cb(new RequestError(res));
+          }
 
-    var req = request.get(options.url, requestOptions);
-    req.pipe(file);
+          var contentLength = res.headers['content-length'];
+          var len = contentLength ? parseInt(contentLength, 10) : 1000000000; // we don't always get a content-length
+          var bar = new ProgressBar('[:bar] :percent :etas', {
+            complete: '=',
+            incomplete: ' ',
+            width: 20,
+            total: len
+          });
 
-    req.on('response', function(res) {
-      var len = parseInt(res.headers['content-length'], 10);
-
-      var bar = new ProgressBar('[:bar] :percent :etas', {
-        complete: '=',
-        incomplete: ' ',
-        width: 20,
-        total: len
-      });
-
-      res.on('data', function(chunk) {
-        bar.tick(chunk.length);
-      });
-    });
-
-    req.on('error', function(error) {
-      log.error(error);
-    });
-
-    req.on('end', function() {
-      _extractZip(zipname, cb);
-    });
+          res.on('data', function(chunk) {
+            bar.tick(chunk.length);
+          });
+        })
+        .on('end', function() {
+          return cb(0);
+          //_extractZip(zipname, cb);
+        })
+        .pipe(file);
+    } catch (e) {
+      cb(new RequestError(e));
+    }
   }
 
   function getTags() {
@@ -148,27 +162,13 @@ module.exports = function(options) {
     return deferred.promise;
   }
 
-  if (!options.repo || !options.repo.length || options.repo.indexOf('/') < 0) {
-    throw new Error('Invalid Repo');
-  }
-
   _normalize();
   _setBranchUrl();
-
-  if (process.env.NODE_ENV === 'test') {
-    return {
-      _extractZip: _extractZip,
-      _normalize: _normalize,
-      _setBranchUrl: _setBranchUrl,
-      getTags: getTags,
-      getBranches: getBranches,
-      download: download
-    };
-  }
 
   return {
     getTags: getTags,
     getBranches: getBranches,
-    download: download
+    download: download,
+    noop: noop
   };
 };
