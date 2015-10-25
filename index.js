@@ -131,8 +131,8 @@ module.exports = function(options) {
     return deferred.promise;
   };
 
-  if (!options.repo || !options.repo.length) {
-    throw new Error('repo is a required field');
+  if (!options.repo || !options.repo.length || options.repo.indexOf('/') < 0) {
+    throw new Error('Invalid Repo');
   }
 
   _normalize();

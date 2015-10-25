@@ -31,7 +31,7 @@ var promptSchema = {
   password: {
     name: 'password',
     message: 'Github password',
-    type: 'string',
+    type: 'password',
     required: true,
     hidden: true
   }
@@ -100,10 +100,22 @@ function _handleStartRequestError(err) {
 }
 
 function _handleStartError(err) {
+  // request error
   if (err instanceof RequestError) {
     return _handleStartRequestError(err);
   }
-  throw err;
+
+  // init error
+  if (err.message === 'Invalid Repo') {
+    l.error(err.message);
+    _promptForRepo(function(promptErr, result) {
+      if (promptErr) {
+        return l.error(promptErr);
+      }
+      _.assign(startConfig, result);
+      _start(startConfig);
+    });
+  }
 }
 
 function _start(config) {
@@ -112,7 +124,7 @@ function _start(config) {
   try {
     d = new Download(config);
   } catch (e) {
-    l.error('error initializing Download()', e);
+    return _handleStartError(e);
   }
 
   if (config.definedBranch) {
