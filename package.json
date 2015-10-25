@@ -1,6 +1,6 @@
 {
   "name": "download-github-repo",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "license": "MIT",
   "repository": "git://github.com/ianstormtaylor/download-github-repo",
   "bin": "./bin/cli.js",
