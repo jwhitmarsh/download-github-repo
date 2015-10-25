@@ -4,6 +4,7 @@ var Q = require('q');
 var unzip = require('unzip');
 var log = require('./util/log');
 var _ = require('lodash');
+var RequestError = require('./util/request-error');
 
 module.exports = function(options) {
 
@@ -106,7 +107,10 @@ module.exports = function(options) {
 
     request.get(tagsUrl, requestOptions, function(err, response, body) {
       if (err) {
-        deferred.reject(err);
+        return deferred.reject(err);
+      }
+      if (response.statusCode !== 200) {
+        return deferred.reject(new RequestError(response));
       }
       deferred.resolve(body);
     });
