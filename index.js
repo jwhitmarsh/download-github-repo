@@ -5,6 +5,7 @@ var unzip = require('unzip');
 var log = require('./util/log');
 var _ = require('lodash');
 var RequestError = require('./util/request-error');
+var ProgressBar = require('progress');
 
 module.exports = function(options) {
 
@@ -21,31 +22,6 @@ module.exports = function(options) {
       'User-Agent': 'request'
     }
   };
-
-  /**
-   * Download GitHub `repo` to `dest` and callback `fn(err)`.
-   * @param {String} repo
-   * @param {String} dest
-   * @param {Function} fn
-   */
-  function download(url, cb) {
-    options.url = url !== undefined ? url : options.url;
-
-    var zipname = options.name + '.zip';
-    var file = fs.createWriteStream(zipname);
-
-    log.info('donloading...', options.url);
-    var req = request.get(options.url, requestOptions);
-    req.pipe(file);
-
-    req.on('error', function(error) {
-      log.error(error);
-    });
-
-    req.on('end', function() {
-      _extractZip(zipname, cb);
-    });
-  }
 
   function _extractZip(zipPath, cb) {
     log.info('extracting', zipPath);
@@ -100,7 +76,48 @@ module.exports = function(options) {
     options.url = 'https://github.com/' + options.owner + '/' + options.name + '/zipball/' + options.branch;
   }
 
-  var tags = function() {
+  /**
+   * Download GitHub `repo` to `dest` and callback `fn(err)`.
+   * @param {String} repo
+   * @param {String} dest
+   * @param {Function} fn
+   */
+  function download(url, cb) {
+    options.url = url !== undefined ? url : options.url;
+
+    var zipname = options.name + '.zip';
+    var file = fs.createWriteStream(zipname);
+
+    log.info('donloading...', options.url);
+
+    var req = request.get(options.url, requestOptions);
+    req.pipe(file);
+
+    req.on('response', function(res) {
+      var len = parseInt(res.headers['content-length'], 10);
+
+      var bar = new ProgressBar('[:bar] :percent :etas', {
+        complete: '=',
+        incomplete: ' ',
+        width: 20,
+        total: len
+      });
+
+      res.on('data', function(chunk) {
+        bar.tick(chunk.length);
+      });
+    });
+
+    req.on('error', function(error) {
+      log.error(error);
+    });
+
+    req.on('end', function() {
+      _extractZip(zipname, cb);
+    });
+  }
+
+  function getTags() {
     var deferred = Q.defer();
     var tagsUrl = 'https://api.github.com/repos/' + options.owner + '/' + options.name + '/tags';
     requestOptions.json = true;
@@ -115,9 +132,9 @@ module.exports = function(options) {
       deferred.resolve(body);
     });
     return deferred.promise;
-  };
+  }
 
-  var branches = function() {
+  function getBranches() {
     var deferred = Q.defer();
     var tagsUrl = 'https://api.github.com/repos/' + options.owner + '/' + options.name + '/branches';
     requestOptions.json = true;
@@ -129,7 +146,7 @@ module.exports = function(options) {
       deferred.resolve(body);
     });
     return deferred.promise;
-  };
+  }
 
   if (!options.repo || !options.repo.length || options.repo.indexOf('/') < 0) {
     throw new Error('Invalid Repo');
@@ -138,10 +155,20 @@ module.exports = function(options) {
   _normalize();
   _setBranchUrl();
 
+  if (process.env.NODE_ENV === 'test') {
+    return {
+      _extractZip: _extractZip,
+      _normalize: _normalize,
+      _setBranchUrl: _setBranchUrl,
+      getTags: getTags,
+      getBranches: getBranches,
+      download: download
+    };
+  }
+
   return {
-    tags: tags,
-    branches: branches,
+    getTags: getTags,
+    getBranches: getBranches,
     download: download
   };
-
 };

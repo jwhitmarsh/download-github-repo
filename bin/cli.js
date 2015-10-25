@@ -132,7 +132,7 @@ function _start(config) {
   }
 
   // q throws whether you handle it or not, so no try catch required
-  d.tags()
+  d.getTags()
     .then(_gotTags)
     .fail(_handleStartError)
     .done();
