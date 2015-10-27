@@ -122,8 +122,7 @@ module.exports = function(options) {
           });
         })
         .on('end', function() {
-          return cb(0);
-          //_extractZip(zipname, cb);
+          return _extractZip(zipname, cb);
         })
         .pipe(file);
     } catch (e) {
