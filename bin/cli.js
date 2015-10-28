@@ -147,14 +147,11 @@ function _startWithPrompt(config) {
 
 function main() {
   gitConf(function(err, gitConfig) {
-    if (err) {
-      return l.error(err);
+    var options = {};
+    if (!err) {
+      options.user = gitConfig.user;
     }
-
-    var options = {
-      user: gitConfig.user
-    };
-
+    
     var configFilePath = path.join(process.cwd(), 'dgr-config.json');
     if (fs.existsSync(configFilePath)) {
       l.info('loading config file', configFilePath);
