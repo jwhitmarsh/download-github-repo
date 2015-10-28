@@ -139,7 +139,7 @@ function _start(config) {
 }
 
 function _startWithPrompt(config) {
-  if (config.user.email) {
+  if (config.user && config.user.email) {
     promptSchema.user.default = config.user.email;
   }
   inquirer.prompt([promptSchema.repo, promptSchema.user, promptSchema.password], function(result) {
