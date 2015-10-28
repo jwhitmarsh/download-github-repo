@@ -139,7 +139,9 @@ function _start(config) {
 }
 
 function _startWithPrompt(config) {
-  promptSchema.user.default = config.user.email;
+  if (config.user.email) {
+    promptSchema.user.default = config.user.email;
+  }
   inquirer.prompt([promptSchema.repo, promptSchema.user, promptSchema.password], function(result) {
     _start(result);
   });
@@ -151,7 +153,7 @@ function main() {
     if (!err) {
       options.user = gitConfig.user;
     }
-    
+
     var configFilePath = path.join(process.cwd(), 'dgr-config.json');
     if (fs.existsSync(configFilePath)) {
       l.info('loading config file', configFilePath);
